@@ -52,12 +52,15 @@ const VerticalMenu = ({ scrollMenu }: Props) => {
         <MenuItem href='/home' icon={<i className='tabler-smart-home' />}>Inicio</MenuItem>
         <MenuItem href='/dashboard' icon={<i className='tabler-dashboard' />}>Panel de control</MenuItem>
 
+
         <MenuSection label='Módulos ERP'>
           <SubMenu label='Compras' icon={<i className='tabler-shopping-cart' />}>
             <MenuItem href='/purchases/orders'>Órdenes</MenuItem>
             <MenuItem href='/purchases/requests'>Solicitudes</MenuItem>
             <MenuItem href='/purchases/reports'>Reportes</MenuItem>
           </SubMenu>
+
+          <MenuItem href='/Empleados' icon={<i className='tabler-user' />}>Empleados</MenuItem>
 
           <SubMenu label='Ventas' icon={<i className='tabler-cash-register' />}>
             <MenuItem href='/sales/invoices'>Facturas</MenuItem>
@@ -72,7 +75,6 @@ const VerticalMenu = ({ scrollMenu }: Props) => {
           </SubMenu>
 
           <SubMenu label='Administración' icon={<i className='tabler-settings' />}>
-            <MenuItem href='/Empleados'>Usuarios</MenuItem>
             <MenuItem href='/admin/roles'>Roles</MenuItem>
             <MenuItem href='/admin/suppliers'>Proveedores</MenuItem>
           </SubMenu>
