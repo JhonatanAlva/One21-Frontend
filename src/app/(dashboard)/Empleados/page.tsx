@@ -21,7 +21,7 @@ type Empleado = {
 const MOCK: Empleado[] = [
   {
     id: 1,
-    nombre: 'John Doe',
+    nombre: 'John Does',
     email: 'john@example.com',
     telefono: '123-456-7890',
     fecha: '2023-05-14',
