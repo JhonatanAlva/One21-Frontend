@@ -8,6 +8,12 @@ import SearchBar from '../../../components/datagrid/SearchBar'
 import PageSizer from '../../../components/datagrid/Pagesizer'
 import StatusSwitch from '../../../components/datagrid/StatusSwitch'
 import RowActions from '../../../components/datagrid/RowActions'
+import Modal from '../../../components/ui/Modal'
+import EmployeeForm from '../../../components/forms/EmployeeForm'
+import type { EmpleadoInput } from '../../../components/forms/EmployeeForm'
+
+// mock JSON
+import empleadosData from '../../../data/empleados.json'
 
 type Empleado = {
   id: number
@@ -18,29 +24,14 @@ type Empleado = {
   activo: boolean
 }
 
-const MOCK: Empleado[] = [
-  {
-    id: 1,
-    nombre: 'John Does',
-    email: 'john@example.com',
-    telefono: '123-456-7890',
-    fecha: '2023-05-14',
-    activo: true
-  },
-  {
-    id: 2,
-    nombre: 'Jane Smith',
-    email: 'jane@example.com',
-    telefono: '987-654-3210',
-    fecha: '2023-06-19',
-    activo: false
-  }
-]
-
 export default function Page() {
-  const [data, setData] = useState<Empleado[]>(MOCK)
+  const [data, setData] = useState<Empleado[]>(empleadosData as Empleado[])
   const [query, setQuery] = useState('')
   const [pageSize, setPageSize] = useState(10)
+
+  // modal state
+  const [open, setOpen] = useState(false)
+  const [editing, setEditing] = useState<Empleado | null>(null)
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -49,18 +40,58 @@ export default function Page() {
 
     return data.filter(
       r =>
-        r.nombre.toLowerCase().includes(q) || r.email.toLowerCase().includes(q) || r.telefono.toLowerCase().includes(q)
+        r.nombre.toLowerCase().includes(q) ||
+        r.email.toLowerCase().includes(q) ||
+        r.telefono.toLowerCase().includes(q)
     )
   }, [query, data])
 
-  const columns: ColumnDef<Empleado>[] = [
+  const nextId = () => (data.length ? Math.max(...data.map(d => d.id)) + 1 : 1)
+
+  const handleAdd = () => {
+    setEditing(null)
+    setOpen(true)
+  }
+
+  const handleEdit = (row: Empleado) => {
+    setEditing(row)
+    setOpen(true)
+  }
+
+  const handleDelete = (row: Empleado) => {
+    if (confirm(`¿Eliminar al empleado "${row.nombre}"?`)) {
+      setData(prev => prev.filter(r => r.id !== row.id))
+    }
+  }
+
+  const handleSubmit = (values: EmpleadoInput) => {
+    if (editing) {
+      // update
+      setData(prev =>
+        prev.map(r => (r.id === editing.id ? { ...editing, ...values, id: editing.id } : r))
+      )
+    } else {
+      // create
+      const nuevo: Empleado = { ...(values as Empleado), id: nextId() }
+
+      setData(prev => [...prev, nuevo])
+    }
+
+    setOpen(false)
+  }
+
+  const columns = useMemo<ColumnDef<Empleado>[]>(() => [
     { key: 'nombre', header: 'Nombre' },
     { key: 'email', header: 'Correo Electrónico' },
     { key: 'telefono', header: 'Teléfono' },
     {
       key: 'fecha',
       header: 'Fecha',
-      render: row => new Date(row.fecha).toLocaleDateString()
+      render: row => {
+        const d = new Date(row.fecha)
+
+        return isNaN(+d) ? row.fecha : d.toLocaleDateString()
+      }
     },
     {
       key: 'activo',
@@ -68,7 +99,9 @@ export default function Page() {
       render: row => (
         <StatusSwitch
           checked={row.activo}
-          onChange={value => setData(prev => prev.map(r => (r.id === row.id ? { ...r, activo: value } : r)))}
+          onChange={value =>
+            setData(prev => prev.map(r => (r.id === row.id ? { ...r, activo: value } : r)))
+          }
         />
       )
     },
@@ -77,12 +110,12 @@ export default function Page() {
       header: 'Acciones',
       render: row => (
         <RowActions
-          onEdit={() => alert(`Editar empleado #${row.id}`)}
-          onDelete={() => setData(prev => prev.filter(r => r.id !== row.id))}
+          onEdit={() => handleEdit(row)}
+          onDelete={() => handleDelete(row)}
         />
       )
     }
-  ]
+  ], [setData])
 
   return (
     <div className='space-y-4'>
@@ -90,7 +123,7 @@ export default function Page() {
       <div className='flex items-center justify-between'>
         <h1 className='text-2xl font-semibold'>Empleados</h1>
         <button
-          onClick={() => alert('Agregar empleado')}
+          onClick={handleAdd}
           className='px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700'
         >
           + Agregar empleado
@@ -108,7 +141,32 @@ export default function Page() {
       </div>
 
       {/* DataGrid */}
-      <DataGrid columns={columns} rows={filtered.slice(0, pageSize)} emptyMessage='No hay empleados para mostrar.' />
+      <DataGrid
+        columns={columns}
+        rows={filtered.slice(0, pageSize)}
+        emptyMessage='No hay empleados para mostrar.'
+      />
+
+      {/* Modal Add/Edit */}
+      <Modal
+        open={open}
+        title={editing ? 'Editar empleado' : 'Agregar empleado'}
+        onClose={() => setOpen(false)}
+      >
+        <EmployeeForm
+          initial={
+            editing ?? {
+              nombre: '',
+              email: '',
+              telefono: '',
+              fecha: new Date().toISOString().slice(0, 10),
+              activo: true
+            }
+          }
+          onSubmit={handleSubmit}
+          onCancel={() => setOpen(false)}
+        />
+      </Modal>
     </div>
   )
 }
