@@ -11,8 +11,8 @@ import RowActions from '../../../components/datagrid/RowActions'
 import Modal from '../../../components/ui/Modal'
 import EmployeeForm from '../../../components/forms/EmployeeForm'
 import type { EmpleadoInput } from '../../../components/forms/EmployeeForm'
+import ConfirmDialog from '../../../components/ui/ConfirmDialog' // 👈 nuevo
 
-// mock JSON
 import empleadosData from '../../../data/empleados.json'
 
 type Empleado = {
@@ -29,15 +29,18 @@ export default function Page() {
   const [query, setQuery] = useState('')
   const [pageSize, setPageSize] = useState(10)
 
-  // modal state
+  // modal add/edit
   const [open, setOpen] = useState(false)
   const [editing, setEditing] = useState<Empleado | null>(null)
+
+  // confirm delete
+  const [confirmDel, setConfirmDel] = useState<{ open: boolean; row?: Empleado }>({ open: false })
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
 
     if (!q) return data
-
+    
     return data.filter(
       r =>
         r.nombre.toLowerCase().includes(q) ||
@@ -48,30 +51,23 @@ export default function Page() {
 
   const nextId = () => (data.length ? Math.max(...data.map(d => d.id)) + 1 : 1)
 
-  const handleAdd = () => {
-    setEditing(null)
-    setOpen(true)
-  }
+  const handleAdd = () => { setEditing(null); setOpen(true) }
+  const handleEdit = (row: Empleado) => { setEditing(row); setOpen(true) }
 
-  const handleEdit = (row: Empleado) => {
-    setEditing(row)
-    setOpen(true)
-  }
+  // 👉 abre confirm dialog
+  const askDelete = (row: Empleado) => setConfirmDel({ open: true, row })
 
-  const handleDelete = (row: Empleado) => {
-    if (confirm(`¿Eliminar al empleado "${row.nombre}"?`)) {
-      setData(prev => prev.filter(r => r.id !== row.id))
-    }
+  // 👉 acción real al confirmar
+  const confirmDelete = () => {
+    if (!confirmDel.row) return
+    setData(prev => prev.filter(r => r.id !== confirmDel.row!.id))
+    setConfirmDel({ open: false })
   }
 
   const handleSubmit = (values: EmpleadoInput) => {
     if (editing) {
-      // update
-      setData(prev =>
-        prev.map(r => (r.id === editing.id ? { ...editing, ...values, id: editing.id } : r))
-      )
+      setData(prev => prev.map(r => (r.id === editing.id ? { ...editing, ...values, id: editing.id } : r)))
     } else {
-      // create
       const nuevo: Empleado = { ...(values as Empleado), id: nextId() }
 
       setData(prev => [...prev, nuevo])
@@ -111,7 +107,7 @@ export default function Page() {
       render: row => (
         <RowActions
           onEdit={() => handleEdit(row)}
-          onDelete={() => handleDelete(row)}
+          onDelete={() => askDelete(row)}   // 👈 usa diálogo
         />
       )
     }
@@ -167,6 +163,19 @@ export default function Page() {
           onCancel={() => setOpen(false)}
         />
       </Modal>
+
+      {/* Confirm Delete */}
+      <ConfirmDialog
+        open={confirmDel.open}
+        title="Eliminar empleado"
+        message={
+          <>¿Estás seguro de eliminar a <b>{confirmDel.row?.nombre}</b>?</>
+        }
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        onConfirm={confirmDelete}
+        onCancel={() => setConfirmDel({ open: false })}
+      />
     </div>
   )
 }
